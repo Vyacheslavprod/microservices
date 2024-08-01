@@ -1,4 +1,4 @@
-module github/vyacheslavprod/microservices
+module github.com/vyacheslavprod/microservices
 
 go 1.22.5
 
