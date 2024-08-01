@@ -22,6 +22,12 @@ func InitServer() {
 	} else {
 		log.Println("Успешное подключение к базе данных")
 	}
+	errRedis := database.InitRedis()
+	if errRedis != nil {
+		log.Fatal("Ошибка подключения к Redis: ", errRedis)
+	} else {
+		log.Println("Успешное подключение к Redis")
+	}
 }
 
 func StartServer() {
