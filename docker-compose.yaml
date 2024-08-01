@@ -1,0 +1,36 @@
+version: '3.1'
+
+services:
+  # БД для сервиса управления заметками
+  db_notes:
+    # Название контейнера
+    container_name: db_notes
+    # Значения переменных окружения
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    # Образ для контейнера который будет скачан из DockerHub
+    image: mongo:5.0.25
+    # Меняем порт MongoDB в контейнере
+    command: mongod --port ${MONGO_INITDB_PORT}
+    # Порты, которые будут использоваться в контейнере
+    ports:
+      - ${MONGO_INITDB_PORT}:${MONGO_INITDB_PORT}
+    # Настройки хранилища данных, необходим для сохранения
+    # данных в базе данных при остановке контейнера
+    volumes:
+       - db_notes_vol:/data/db
+    # Объявляем внутренную сеть докера, для 
+    # передачи данных между контейнерами
+    networks:
+      - server_net
+
+    
+# Конфигурация для хранилища данных
+volumes:
+  db_notes_vol: {}
+
+# Настройки сетей
+networks:
+  server_net:
+    driver: bridge
