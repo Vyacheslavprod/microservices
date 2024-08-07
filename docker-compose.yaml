@@ -1,6 +1,7 @@
 version: '3.1'
 
 services:
+
   # БД для сервиса управления заметками
   db_notes:
     # Название контейнера
@@ -13,13 +14,11 @@ services:
     image: mongo:5.0.25
     # Меняем порт MongoDB в контейнере
     command: mongod --port ${MONGO_INITDB_PORT}
-    # Порты, которые будут использоваться в контейнере
-    ports:
-      - ${MONGO_INITDB_PORT}:${MONGO_INITDB_PORT}
+
     # Настройки хранилища данных, необходим для сохранения
     # данных в базе данных при остановке контейнера
     volumes:
-       - db_notes_vol:/data/db
+      - db_notes_vol:/data/db
     # Объявляем внутренную сеть докера, для 
     # передачи данных между контейнерами
     networks:
@@ -32,9 +31,7 @@ services:
     image: redis:7.2.4
     # Меняем порт Redis в контейнере
     command: --port ${REDIS_PORT}
-    # Порты, которые будут использоваться в контейнере
-    ports:
-      - ${REDIS_PORT}:${REDIS_PORT}
+
     # Настройки хранилища данных, необходим для сохранения
     # данных в базе данных при остановке контейнера
     volumes:
@@ -43,12 +40,110 @@ services:
     # передачи данных между контейнерами
     networks:
       - server_net
+  # Cервис для управления заметками
+  notes:
+    # Название контейнера
+    container_name: notes
+    # Папка контейнера для сборки
+    build: ./notes
+    # Указывает, что контейнер должен ждать запуск контейнеров
+    # Так как необходимо, чтобы MongoDB и Redis были запущены
+    depends_on:
+      - db_notes
+      - redis_notes
+    # Объявляем внутренную сеть докера, для 
+    # передачи данных между контейнерами
+    networks:
+      - server_net
 
-    
+    # Внешние переменные окружения
+    environment:
+      # Порт который будет использоваться в контейнере
+      NOTES_PORT: ${NOTES_PORT}
+      # Секретный ключ для аутентификации
+      JWT_SECRET: ${JWT_SECRET}
+      # Настройки MongoDB, укзаваем в контейнере
+      MONGO_INITDB_HOST: ${MONGO_INITDB_HOST}
+      MONGO_INITDB_PORT: ${MONGO_INITDB_PORT}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      # Настройки Redis, укзаваем в контейнере
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+  
+  # БД для сервиса управления пользователями 
+  db_auth:
+    # Название контейнера
+    container_name: db_auth
+    # Значения переменных окружения
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    # Образ для контейнера который будет скачан из DockerHub
+    image: postgres:15-alpine
+
+    # Меняем порт по умолчанию в Postgres контейнере
+    command:
+      - 'postgres'
+      - '-c'
+      - 'port=${POSTGRES_PORT}'
+    # Настройки хранилища данных, необходим для сохранения
+    # данных в базе данных при остановке контейнера
+    volumes:
+      - db_auth_vol:/var/lib/postgresql/data
+    # Объявляем внутренную сеть докера, для 
+    # передачи данных между контейнерами
+    networks:
+      - server_net
+
+  # Cервис для управления пользователем
+  auth:
+    # Название контейнера
+    container_name: auth
+    # Папка контейнера для сборки
+    build: ./auth
+    # Указывает, что контейнер должен ждать запуск контейнеров
+    # Так как необходимо, чтобы MongoDB и Redis были запущены
+    depends_on:
+      - db_auth
+    # Объявляем внутренную сеть докера, для 
+    # передачи данных между контейнерами
+    networks:
+      - server_net
+
+    # Внешние переменные окружения
+    environment:
+      # Порт который будет использоваться в контейнере
+      AUTH_PORT: ${AUTH_PORT}
+      # Секретный ключ для аутентификации
+      JWT_SECRET: ${JWT_SECRET}
+      # Настройки MongoDB, укзаваем в контейнере
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_NAME: ${POSTGRES_NAME}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_USE_SSL: ${POSTGRES_USE_SSL}
+
+  nginx:
+    restart: on-failure
+    container_name: nginx
+    image: nginx:1.25.4-alpine
+    networks:
+      - server_net
+    ports:
+      - ${NGINX_PORT}:${NGINX_PORT}
+    depends_on:
+      - auth
+      - notes
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+
 # Конфигурация для хранилища данных
 volumes:
   db_notes_vol: {}
-  redis-data: {}
+  redis-data: {}   
+  db_auth_vol: {}
 
 # Настройки сетей
 networks:

@@ -2,8 +2,8 @@ package server
 
 import (
 	"log"
-	"github.com/vyacheslavprod/microservices/database"
-	"github.com/vyacheslavprod/microservices/envs"
+	"github.com/vyacheslavprod/microservices/notes/database"
+	"github.com/vyacheslavprod/microservices/notes/envs"
 )
 
 func InitServer() {

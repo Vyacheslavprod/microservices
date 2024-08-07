@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"github.com/vyacheslavprod/microservices/database"
-	"github.com/vyacheslavprod/microservices/models"
+	"github.com/vyacheslavprod/microservices/notes/database"
+	"github.com/vyacheslavprod/microservices/notes/models"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -17,7 +17,11 @@ import (
 
 // Обработка запроса для получения заметки по ID
 func GetNoteHandler(ctx *gin.Context) {
-	authorId := 1
+	authorId, err := ExtractUserID(ctx.GetHeader("Authorization"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверные данные"})
+		return
+	}
 	// Получаем ID заметки из параметра запроса
 	id := ctx.Param("id")
 	// Получаем коллекцию "notes"
@@ -40,7 +44,11 @@ func GetNoteHandler(ctx *gin.Context) {
 
 // Обработка запроса для получения всех заметок
 func GetNotesHandler(ctx *gin.Context) {
-	authorId := 1
+	authorId, err := ExtractUserID(ctx.GetHeader("Authorization"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверные данные"})
+		return
+	}
 	// Объявляем список заметок
 	var notes []models.Note
 
@@ -88,7 +96,7 @@ func GetNotesHandler(ctx *gin.Context) {
 	}
 }
 
-func recordCacheToRedis(notes []models.Note, authorId int) {
+func recordCacheToRedis(notes []models.Note, authorId uint) {
 	// Сериализуем список заметок в JSON
 	notesJSON, err := json.Marshal(notes)
 	// Обрабатываем ошибку или продолжаем без кэширования
@@ -121,6 +129,11 @@ func getFromCache(val string, ctx *gin.Context) {
 }
 
 func CreateNoteHandler(ctx *gin.Context) {
+	authorId, err := ExtractUserID(ctx.GetHeader("Authorization"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверные данные"})
+		return
+	}
 
 	// Создание новой заметки
 	var note models.Note
@@ -133,7 +146,7 @@ func CreateNoteHandler(ctx *gin.Context) {
 	// Получить уникальный id
 	note.Id = uuid.New().String()
 	// Тестовый ID автора
-	note.AuthorID = 1
+	note.AuthorID = authorId
 
 	// Получаем коллекцию "notes"
 	collection := database.MongoClient.Database("admin").Collection(fmt.Sprintf("notes/%d", note.AuthorID))
@@ -153,12 +166,16 @@ func CreateNoteHandler(ctx *gin.Context) {
 
 // Обработка запроса для удаления заметки по ID
 func DeleteNoteHandler(ctx *gin.Context) {
-	var authorID = 1
+	authorId, err := ExtractUserID(ctx.GetHeader("Authorization"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверные данные"})
+		return
+	}
 	// Получаем ID заметки из параметра запроса
 	id := ctx.Param("id")
 
 	// Получаем коллекцию "notes"
-	collection := database.MongoClient.Database("admin").Collection(fmt.Sprintf("notes/%d", authorID))
+	collection := database.MongoClient.Database("admin").Collection(fmt.Sprintf("notes/%d", authorId))
 
 	// Создаем фильтр для поиска по ID
 	filter := bson.M{"id": id}
@@ -174,14 +191,18 @@ func DeleteNoteHandler(ctx *gin.Context) {
 	if result.DeletedCount == 0 {
 		ctx.JSON(http.StatusOK, "Заметка не найдена")
 	} else {
-		resetCache(fmt.Sprintf("notes/%d", authorID))
+		resetCache(fmt.Sprintf("notes/%d", authorId))
 		ctx.JSON(http.StatusOK, "Заметка успешно удалена")
 	}
 }
 
 // Обработка запроса для редактирования заметки по ID
 func UpdateNoteHandler(ctx *gin.Context) {
-	authorId := 1
+	authorId, err := ExtractUserID(ctx.GetHeader("Authorization"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверные данные"})
+		return
+	}
 	// Получаем ID заметки из параметра запроса
 	id := ctx.Param("id")
 

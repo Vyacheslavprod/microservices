@@ -2,7 +2,7 @@ package database
 
 import (
 	"fmt"
-	"github.com/vyacheslavprod/microservices/envs"
+	"github.com/vyacheslavprod/microservices/notes/envs"
 
 	"github.com/go-redis/redis"
 )

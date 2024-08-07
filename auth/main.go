@@ -1,8 +1,6 @@
 package main
 
-import (
-	"github.com/vyacheslavprod/microservices/server"
-)
+import "auth/server"
 
 func init() {
 	server.InitServer()
@@ -10,5 +8,4 @@ func init() {
 
 func main() {
 	server.StartServer()
-	
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"github.com/vyacheslavprod/microservices/envs"
+	"github.com/vyacheslavprod/microservices/notes/envs"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
